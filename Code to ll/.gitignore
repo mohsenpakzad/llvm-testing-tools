@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!allfigs2pdf
+!c2ll.sh
+!test1.c
