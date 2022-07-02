@@ -5,4 +5,7 @@
 !.gitignore
 !allfigs2pdf
 !c2ll.sh
-!test1.c
+
+!test0.c
+!test0.ll
+!test0.pdf
