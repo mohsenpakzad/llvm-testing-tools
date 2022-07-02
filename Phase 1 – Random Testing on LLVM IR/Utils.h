@@ -38,4 +38,61 @@ std::string getSimpleNodeName(const Value *node) {
     return os.str();
 }
 
+std::set<std::string> getInputArguments(BasicBlock *entryBlock, const std::string &prefix) {
+    // get all variables that their variable name starts with "a"
+    std::set<std::string> inputArguments;
+    for (auto &I: *entryBlock) {
+        if (I.getOpcode() == Instruction::Alloca) {
+            auto allocaInstruction = dyn_cast<AllocaInst>(&I);
+            if (allocaInstruction->getName().startswith(prefix)) {
+                inputArguments.insert(allocaInstruction->getName());
+            }
+        }
+    }
+    return inputArguments;
+}
+
+std::map<std::string, int> randomInitialize(std::set<std::string> inputArguments, int minRange, int maxRange) {
+    std::map<std::string, int> variableMap;
+    for (auto &variable: inputArguments) {
+        variableMap[variable] = randomInRange(minRange, maxRange);
+    }
+    return variableMap;
+}
+
+std::string cmpPredicateToString(CmpInst::Predicate predicate) {
+    switch (predicate) {
+        case CmpInst::ICMP_EQ:
+            return "==";
+        case CmpInst::ICMP_NE:
+            return "!=";
+        case CmpInst::ICMP_UGT:
+            return ">";
+        case CmpInst::ICMP_UGE:
+            return ">=";
+        case CmpInst::ICMP_ULT:
+            return "<";
+        case CmpInst::ICMP_ULE:
+            return "<=";
+        case CmpInst::ICMP_SGT:
+            return ">";
+        case CmpInst::ICMP_SGE:
+            return ">=";
+        case CmpInst::ICMP_SLT:
+            return "<";
+        case CmpInst::ICMP_SLE:
+            return "<=";
+        default:
+            return "==";
+    }
+}
+
+std::string CmpInstructionToString(ICmpInst *cmpInst) {
+    return "(" +
+           getSimpleNodeName(cmpInst->getOperand(0)) + " " +
+           cmpPredicateToString(cmpInst->getPredicate()) + " " +
+           getSimpleNodeName(cmpInst->getOperand(1))
+           + ")";
+}
+
 #endif //PHASE_1__RANDOM_TESTING_ON_LLVM_IR_UTILS_H
