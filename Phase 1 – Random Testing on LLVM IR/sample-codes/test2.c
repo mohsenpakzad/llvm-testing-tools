@@ -1,18 +1,14 @@
 int main() {
-
-  int a, b, x = 0;
-
-  if (a > 0) {
-    x -= 5;
-  } else {
-    x = 2;
-  }
-
-  if (b > 0) {
-    x = 3;
-  } else {
-    x += 51;
-  }
-
-  return 0;
+    int a1;
+    int b, c;
+    int i = 0;
+    while (i < 2) {
+        if (a1 > 0) {
+            b = 7;
+            a1 = -1;
+        } else {
+            c = 12;
+        }
+        i++;
+    }
 }

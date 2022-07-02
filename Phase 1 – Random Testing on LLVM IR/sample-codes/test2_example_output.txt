@@ -1,0 +1,26 @@
+************** Input Argument(s) ***************
+a1: 12
+*************** Navigated Path *****************
+entry
+while.cond
+while.body
+if.then
+if.end
+while.cond
+while.body
+if.else
+if.end
+while.cond
+while.end
+**************** Variables Map *****************
+a1: -1
+b: 7
+c: 12
+i: 2
+retval: 0
+*********** Comparison Instructions ************
+(%0 >= 2)
+(%1 <= 0)
+(%0 >= 2)
+(%1 <= 0)
+(%0 >= 2)

@@ -1,0 +1,12 @@
+************** Input Argument(s) ***************
+a1: 123
+*************** Navigated Path *****************
+entry
+if.then
+return
+**************** Variables Map *****************
+a1: 123
+retval: 123
+x: 123
+*********** Comparison Instructions ************
+(%1 > 0)

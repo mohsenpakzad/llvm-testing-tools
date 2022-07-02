@@ -7,42 +7,42 @@ target triple = "x86_64-pc-linux-gnu"
 define dso_local i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
-  %a = alloca i32, align 4
+  %a1 = alloca i32, align 4
   %b = alloca i32, align 4
-  %x = alloca i32, align 4
+  %c = alloca i32, align 4
+  %i = alloca i32, align 4
   store i32 0, i32* %retval, align 4
-  store i32 0, i32* %x, align 4
-  %0 = load i32, i32* %a, align 4
-  %cmp = icmp sgt i32 %0, 0
-  br i1 %cmp, label %if.then, label %if.else
+  store i32 0, i32* %i, align 4
+  br label %while.cond
 
-if.then:                                          ; preds = %entry
-  %1 = load i32, i32* %x, align 4
-  %sub = sub nsw i32 %1, 5
-  store i32 %sub, i32* %x, align 4
+while.cond:                                       ; preds = %if.end, %entry
+  %0 = load i32, i32* %i, align 4
+  %cmp = icmp slt i32 %0, 2
+  br i1 %cmp, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %1 = load i32, i32* %a1, align 4
+  %cmp1 = icmp sgt i32 %1, 0
+  br i1 %cmp1, label %if.then, label %if.else
+
+if.then:                                          ; preds = %while.body
+  store i32 7, i32* %b, align 4
+  store i32 -1, i32* %a1, align 4
   br label %if.end
 
-if.else:                                          ; preds = %entry
-  store i32 2, i32* %x, align 4
+if.else:                                          ; preds = %while.body
+  store i32 12, i32* %c, align 4
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %if.then
-  %2 = load i32, i32* %b, align 4
-  %cmp1 = icmp sgt i32 %2, 0
-  br i1 %cmp1, label %if.then2, label %if.else3
+  %2 = load i32, i32* %i, align 4
+  %inc = add nsw i32 %2, 1
+  store i32 %inc, i32* %i, align 4
+  br label %while.cond
 
-if.then2:                                         ; preds = %if.end
-  store i32 3, i32* %x, align 4
-  br label %if.end4
-
-if.else3:                                         ; preds = %if.end
-  %3 = load i32, i32* %x, align 4
-  %add = add nsw i32 %3, 51
-  store i32 %add, i32* %x, align 4
-  br label %if.end4
-
-if.end4:                                          ; preds = %if.else3, %if.then2
-  ret i32 0
+while.end:                                        ; preds = %while.cond
+  %3 = load i32, i32* %retval, align 4
+  ret i32 %3
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
