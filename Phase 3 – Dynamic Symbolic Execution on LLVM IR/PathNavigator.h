@@ -157,10 +157,6 @@ private:
         return evaluateBinaryOpInstruction(binaryOperator->getOpcode(), op1Value, op2Value);
     }
 
-    inline static std::string getLoadInstOperandName(LoadInst *loadInst) {
-        return loadInst->getPointerOperand()->getName().str();
-    }
-
     static int evaluateBinaryOpInstruction(Instruction::BinaryOps binaryOps, int e1, int e2) {
         switch (binaryOps) {
             case Instruction::Add:
@@ -291,10 +287,11 @@ private:
                 }
 
                 auto cmpResult = evaluateCmpInstruction(cmpPredicate, opCmp1FinalValue, opCmp2FinalValue);
+
                 if (!cmpResult) {
-                    cmpInstruction->setPredicate(negateCmpPredicate(cmpPredicate));
+                    cmpInstruction = new ICmpInst(cmpInstruction->getInversePredicate(), opCmp1, opCmp2);
                 }
-                cmpInstructions.push_back(cmpInstruction);
+                cmpInstructions.emplace_back(cmpInstruction);
                 return new bool(cmpResult);
             }
         }
@@ -323,33 +320,6 @@ private:
                 return opCmp1Value < opCmp2Value;
             case ICmpInst::ICMP_SLE:
                 return opCmp1Value <= opCmp2Value;
-            default:
-                throw std::runtime_error("Unknown comparison type");
-        }
-    }
-
-    static CmpInst::Predicate negateCmpPredicate(CmpInst::Predicate predicate) {
-        switch (predicate) {
-            case CmpInst::ICMP_EQ:
-                return CmpInst::ICMP_NE;
-            case CmpInst::ICMP_NE:
-                return CmpInst::ICMP_EQ;
-            case CmpInst::ICMP_UGT:
-                return CmpInst::ICMP_ULE;
-            case CmpInst::ICMP_UGE:
-                return CmpInst::ICMP_ULT;
-            case CmpInst::ICMP_ULT:
-                return CmpInst::ICMP_UGE;
-            case CmpInst::ICMP_ULE:
-                return CmpInst::ICMP_UGT;
-            case CmpInst::ICMP_SGT:
-                return CmpInst::ICMP_SLE;
-            case CmpInst::ICMP_SGE:
-                return CmpInst::ICMP_SLT;
-            case CmpInst::ICMP_SLT:
-                return CmpInst::ICMP_SGE;
-            case CmpInst::ICMP_SLE:
-                return CmpInst::ICMP_SGT;
             default:
                 throw std::runtime_error("Unknown comparison type");
         }

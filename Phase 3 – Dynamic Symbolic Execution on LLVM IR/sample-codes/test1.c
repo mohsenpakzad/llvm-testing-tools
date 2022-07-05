@@ -1,9 +1,8 @@
 int main() {
     int a1;
-    int x = a1;
-    if (x != 123456) {
-        return x;
+    if (a1 != 90) {
+        return a1;
     } else {
-        return x; // bug: should be ’-x’
+        return a1; // bug: should be ’-x’
     }
 }

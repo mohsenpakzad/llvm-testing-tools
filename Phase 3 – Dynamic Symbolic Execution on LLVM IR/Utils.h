@@ -18,6 +18,15 @@
 
 using namespace llvm;
 
+class Path {
+public:
+    std::map<std::string, int> argumentsMap;
+    std::vector<BasicBlock *> navigatedPath;
+
+    Path(std::map<std::string, int> argumentsMap, std::vector<BasicBlock *> path)
+            : argumentsMap(std::move(argumentsMap)), navigatedPath(std::move(path)) {}
+};
+
 int randomInRange(int startOfRange, int endOfRange) {
     //the random device that will seed the generator
     std::random_device seeder;
@@ -84,6 +93,37 @@ std::string cmpPredicateToString(CmpInst::Predicate predicate) {
             return "<=";
         default:
             return "==";
+    }
+}
+
+inline std::string getLoadInstOperandName(LoadInst *loadInst) {
+    return loadInst->getPointerOperand()->getName().str();
+}
+
+CmpInst::Predicate negateCmpPredicate(CmpInst::Predicate predicate) {
+    switch (predicate) {
+        case CmpInst::ICMP_EQ:
+            return CmpInst::ICMP_NE;
+        case CmpInst::ICMP_NE:
+            return CmpInst::ICMP_EQ;
+        case CmpInst::ICMP_UGT:
+            return CmpInst::ICMP_ULE;
+        case CmpInst::ICMP_UGE:
+            return CmpInst::ICMP_ULT;
+        case CmpInst::ICMP_ULT:
+            return CmpInst::ICMP_UGE;
+        case CmpInst::ICMP_ULE:
+            return CmpInst::ICMP_UGT;
+        case CmpInst::ICMP_SGT:
+            return CmpInst::ICMP_SLE;
+        case CmpInst::ICMP_SGE:
+            return CmpInst::ICMP_SLT;
+        case CmpInst::ICMP_SLT:
+            return CmpInst::ICMP_SGE;
+        case CmpInst::ICMP_SLE:
+            return CmpInst::ICMP_SGT;
+        default:
+            throw std::runtime_error("Unknown comparison type");
     }
 }
 
