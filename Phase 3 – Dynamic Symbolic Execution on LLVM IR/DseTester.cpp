@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
     auto dseTester = DseTester(
             mainBasicBlock,
             getInputArguments(mainBasicBlock, "a"),
-            -100,
-            100
+            -10,
+            10
     );
 
     auto navigatedPaths = dseTester.run();

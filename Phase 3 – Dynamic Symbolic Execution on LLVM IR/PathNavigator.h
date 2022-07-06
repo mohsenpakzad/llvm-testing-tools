@@ -27,7 +27,7 @@ private:
     std::map<std::string, int> variablesMap;
 
     std::vector<BasicBlock *> path;
-    std::vector<ICmpInst *> cmpInstructions;
+    std::vector<CmpInstStorePath> cmpInstsStorePath;
 public:
 
     PathNavigator(BasicBlock *entryBlock, std::map<std::string, int> argumentsMap)
@@ -66,8 +66,8 @@ public:
         return path;
     }
 
-    std::vector<ICmpInst *> &getCmpInstructions() {
-        return cmpInstructions;
+    std::vector<CmpInstStorePath> &getCmpInstsStorePath() {
+        return cmpInstsStorePath;
     }
 
 private:
@@ -188,9 +188,14 @@ private:
     }
 
     bool *evaluateComparison(BasicBlock *basicBlock) {
+        std::vector<StoreInst *> storeInstsBeforeCmpInst;
         for (auto &I: *basicBlock) {
+
+            if (I.getOpcode() == Instruction::Store){
+                storeInstsBeforeCmpInst.push_back(dyn_cast<StoreInst>(&I));
+            }
             // Integer comparison
-            if (I.getOpcode() == Instruction::ICmp) {
+            else if (I.getOpcode() == Instruction::ICmp) {
                 auto *cmpInstruction = dyn_cast<ICmpInst>(&I);
 
                 auto opCmp1 = cmpInstruction->getOperand(0);
@@ -291,7 +296,7 @@ private:
                 if (!cmpResult) {
                     cmpInstruction = new ICmpInst(cmpInstruction->getInversePredicate(), opCmp1, opCmp2);
                 }
-                cmpInstructions.emplace_back(cmpInstruction);
+                cmpInstsStorePath.emplace_back(cmpInstruction, storeInstsBeforeCmpInst);
                 return new bool(cmpResult);
             }
         }

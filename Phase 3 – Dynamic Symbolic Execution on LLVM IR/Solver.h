@@ -24,12 +24,12 @@ using namespace llvm;
 
 class Solver {
 public:
-    std::vector<ICmpInst *> comparisonInstructions;
+    std::vector<CmpInstStorePath> cmpInstsStorePath;
     int minRange, maxRange;
     std::map<std::string, std::set<int>> variablesRange;
 
-    Solver(std::vector<ICmpInst *> comparisonInstructions, int minRange, int maxRange)
-            : comparisonInstructions(std::move(comparisonInstructions)), minRange(minRange), maxRange(maxRange) {}
+    Solver(std::vector<CmpInstStorePath> cmpInstsStorePath, int minRange, int maxRange)
+            : cmpInstsStorePath(std::move(cmpInstsStorePath)), minRange(minRange), maxRange(maxRange) {}
 
     std::map<std::string, int> solve() {
         applyComparisons();
@@ -41,7 +41,8 @@ public:
                 auto randomNum = randomInRange(0, variableRagePair.second.size() - 1);
                 result[variableRagePair.first] = *std::next(variableRagePair.second.begin(), randomNum);
             } else {
-                outs() << "No value for variable " << variableRagePair.first << "\n";
+                // print variable name and range
+                outs() << "!!!!!!!No value for variable " << variableRagePair.first << "!!!!!!!\n";
             }
         }
 
@@ -49,7 +50,30 @@ public:
     }
 
     void applyComparisons() {
-        for (auto cmpInstruction: comparisonInstructions) {
+        for (const auto &cmpInstStorePath: cmpInstsStorePath) {
+
+            // print variablesRange
+            outs() << "before variablesRange: \n";
+            for (auto &variableRangePair: variablesRange) {
+                outs() << variableRangePair.first << ": ";
+                for (auto &range: variableRangePair.second) {
+                    outs() << range << " ";
+                }
+                outs() << "\n";
+            }
+
+            applyStorePathAssignments(cmpInstStorePath.storePath);
+
+            outs() << "after variablesRange: \n";
+            for (auto &variableRangePair: variablesRange) {
+                outs() << variableRangePair.first << ": ";
+                for (auto &range: variableRangePair.second) {
+                    outs() << range << " ";
+                }
+                outs() << "\n";
+            }
+
+            auto cmpInstruction = cmpInstStorePath.cmpInst;
 
             auto opCmp1 = cmpInstruction->getOperand(0);
             auto opCmp2 = cmpInstruction->getOperand(1);
@@ -88,6 +112,92 @@ public:
         }
 
     }
+
+    void applyStorePathAssignments(std::vector<StoreInst *> storePath) {
+        for (auto storeInst: storePath) {
+            std::string pointerOpName = storeInst->getPointerOperand()->getName().str();
+            Value * storeValue = storeInst->getValueOperand();
+
+//            if (variablesRange.find(pointerOpName) == variablesRange.end()) continue;
+
+            // if storeValue is a constant instruction
+            // Example: a = 5
+            if (isa<ConstantInt>(storeValue)) {
+                auto exactValue = dyn_cast<ConstantInt>(storeValue)->getSExtValue();
+
+                variablesRange[pointerOpName] = std::set<int>();
+                variablesRange[pointerOpName].insert(exactValue);
+            }
+                // if storeValue is a load instruction
+                // Example: a = b
+            else if (isa<LoadInst>(storeValue)) {
+                std::string opName = getLoadInstOperandName(dyn_cast<LoadInst>(storeValue));
+
+//                if (variablesRange.find(opName) != variablesRange.end()) {
+                    variablesRange[pointerOpName] = getVariableRange(opName);
+//                }
+            }
+                // check if store value is binary operator (like add, sub, mul or div)
+                // Example: a = b + c, a = b - 2, a = c * 5, a = 10 / 2
+            else if (isa<BinaryOperator>(storeValue)) {
+                outs() << "Reached!\n";
+                applyBinaryOperationAssignment(pointerOpName, dyn_cast<BinaryOperator>(storeValue));
+            }
+        }
+    }
+
+    void applyBinaryOperationAssignment(const std::string& pointerOpName, BinaryOperator *binaryOperator) {
+        Value * op1 = binaryOperator->getOperand(0);
+        Value * op2 = binaryOperator->getOperand(1);
+
+        // check if op1 or op2 is a constant and get constant value
+        // or load register and get register value
+        if (isa<LoadInst>(op1) && isa<LoadInst>(op2)) {
+            std::string op1Name = getLoadInstOperandName(dyn_cast<LoadInst>(op1));
+            std::string op2Name = getLoadInstOperandName(dyn_cast<LoadInst>(op2));
+
+//            if (variablesRange.find(op1Name) != variablesRange.end() &&
+//                    variablesRange.find(op2Name) != variablesRange.end()) {
+                variablesRange[pointerOpName] = rangeOperation(
+                        binaryOperator->getOpcode(),
+                        getVariableRange(op1Name),
+                        getVariableRange(op2Name)
+               );
+//            }
+        } else if (isa<LoadInst>(op1) && isa<ConstantInt>(op2)) {
+            std::string op1Name = getLoadInstOperandName(dyn_cast<LoadInst>(op1));
+            int op2ExactValue = dyn_cast<ConstantInt>(op2)->getSExtValue();
+
+//            if (variablesRange.find(op1Name) != variablesRange.end()) {
+                variablesRange[pointerOpName] = rangeOperation(
+                        binaryOperator->getOpcode(),
+                        getVariableRange(op1Name),
+                        std::set<int>{op2ExactValue}
+                );
+//            }
+        } else if (isa<ConstantInt>(op1) && isa<LoadInst>(op2)) {
+            int op1ExactValue = dyn_cast<ConstantInt>(op1)->getSExtValue();
+            std::string op2Name = getLoadInstOperandName(dyn_cast<LoadInst>(op2));
+
+//            if (variablesRange.find(op2Name) != variablesRange.end()) {
+                variablesRange[pointerOpName] = rangeOperation(
+                        binaryOperator->getOpcode(),
+                        std::set<int>{op1ExactValue},
+                        getVariableRange(op2Name)
+                );
+//            }
+        } else if (isa<ConstantInt>(op1) && isa<ConstantInt>(op2)) {
+            int op1ExactValue = dyn_cast<ConstantInt>(op1)->getSExtValue();
+            int op2ExactValue = dyn_cast<ConstantInt>(op2)->getSExtValue();
+
+            variablesRange[pointerOpName] = rangeOperation(
+                    binaryOperator->getOpcode(),
+                    std::set<int>{op1ExactValue},
+                    std::set<int>{op2ExactValue}
+            );
+        }
+    }
+
 
     void applyCmpInstToVariablesRange(CmpInst::Predicate cmpPredicate,
                                       const std::pair<std::string, std::set<int>> &opCmp1Range,
@@ -162,8 +272,9 @@ public:
         return variablesRange[variableName];
     }
 
-    static std::set<int> rangeOperation(const std::set<int> &range1, const std::set<int> &range2,
-                                        Instruction::BinaryOps binaryOps) {
+
+    static std::set<int> rangeOperation(Instruction::BinaryOps binaryOps,
+                                        const std::set<int> &range1, const std::set<int> &range2) {
         std::set<int> result;
         switch (binaryOps) {
             case Instruction::Add:
@@ -197,42 +308,11 @@ public:
                 }
                 break;
             default:
-                return result; // todo: unsupported operation
+                throw std::runtime_error("Unknown Instruction::BinaryOps");
         }
         return result;
     }
 
-    static std::set<int> rangeOperation(const std::set<int> &range, int absoluteValue,
-                                        Instruction::BinaryOps binaryOps) {
-        std::set<int> result;
-        switch (binaryOps) {
-            case Instruction::Add:
-                for (int e: range) {
-                    result.insert(e + absoluteValue);
-                }
-                break;
-            case Instruction::Sub:
-                for (int e: range) {
-                    result.insert(e - absoluteValue);
-                }
-                break;
-            case Instruction::Mul:
-                for (int e: range) {
-                    result.insert(e * absoluteValue);
-                }
-                break;
-            case Instruction::SDiv:
-                for (int e: range) {
-                    if (absoluteValue != 0) {
-                        result.insert(e / absoluteValue);
-                    }
-                }
-                break;
-            default:
-                return result; // todo: unsupported operation
-        }
-        return result;
-    }
 
     inline static std::string getLoadInstOperandName(LoadInst *loadInst) {
         return loadInst->getPointerOperand()->getName().str();

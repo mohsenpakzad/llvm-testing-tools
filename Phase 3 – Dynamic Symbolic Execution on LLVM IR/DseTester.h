@@ -52,19 +52,22 @@ public:
                 maxRange
         );
 
+        int i = 0;
         while (true) {
+            if(i == 2) return navigatedPaths;
             auto pathNavigator = PathNavigator(entryBlock, currentArgumentsMap);
             pathNavigator.navigate();
 
             // if navigated path is already exists break
-            for (auto &path: navigatedPaths) {
-                if (path.navigatedPath == pathNavigator.getPath()) {
-                    return navigatedPaths;
-                }
-            }
+//            for (auto &path: navigatedPaths) {
+//                if (path.navigatedPath == pathNavigator.getPath()) {
+//                    outs() << "duplicate path found\n";
+//                    return navigatedPaths;
+//                }
+//            }
             navigatedPaths.emplace_back(currentArgumentsMap, pathNavigator.getPath());
 
-            auto filteredCmpInsts = filterCmpInstsBaseOnInputArgs(pathNavigator.getCmpInstructions());
+            auto filteredCmpInsts = filterCmpInstsBaseOnInputArgs(pathNavigator.getCmpInstsStorePath());
 
             auto negateOfLast = negateCmpInst(filteredCmpInsts.back());
             filteredCmpInsts.pop_back();
@@ -72,15 +75,18 @@ public:
 
             auto solver = Solver(filteredCmpInsts, minRange, maxRange);
             currentArgumentsMap = solver.solve();
+
+            i++;
         }
 
         return navigatedPaths;
     }
 
-    std::vector<ICmpInst *> filterCmpInstsBaseOnInputArgs(
-            const std::vector<ICmpInst *> &cmpInsts) {
-        std::vector<ICmpInst *> filteredCmpInsts;
-        for (const auto &cmpInstruction: cmpInsts) {
+    std::vector<CmpInstStorePath> filterCmpInstsBaseOnInputArgs(const std::vector<CmpInstStorePath> &cmpInstsStorePath) {
+        std::vector<CmpInstStorePath> filteredCmpInsts;
+        for (const auto &cmpInstStorePath: cmpInstsStorePath) {
+            auto cmpInstruction = cmpInstStorePath.cmpInst;
+
             auto opCmp1 = cmpInstruction->getOperand(0);
             auto opCmp2 = cmpInstruction->getOperand(1);
 
@@ -93,7 +99,7 @@ public:
                 // then add this cmpInstruction to filteredCmpInsts
                 if (inputArguments.find(opCmp1Name) != inputArguments.end() &&
                     inputArguments.find(opCmp2Name) != inputArguments.end()) {
-                    filteredCmpInsts.emplace_back(cmpInstruction);
+                    filteredCmpInsts.emplace_back(cmpInstruction, cmpInstStorePath.storePath);
                 }
             }
                 // Example: a == 5
@@ -102,7 +108,7 @@ public:
 
                 // if opCmp1Name is in inputArguments, then add this cmpInstruction to filteredCmpInsts
                 if (inputArguments.find(opCmp1Name) != inputArguments.end()) {
-                    filteredCmpInsts.emplace_back(cmpInstruction);
+                    filteredCmpInsts.emplace_back(cmpInstruction, cmpInstStorePath.storePath);
                 }
             }
                 // Example: 7 == b
@@ -111,19 +117,22 @@ public:
 
                 // if opCmp2Name is in inputArguments, then add this cmpInstruction to filteredCmpInsts
                 if (inputArguments.find(opCmp2Name) != inputArguments.end()) {
-                    filteredCmpInsts.emplace_back(cmpInstruction);
+                    filteredCmpInsts.emplace_back(cmpInstruction, cmpInstStorePath.storePath);
                 }
             }
         }
         return filteredCmpInsts;
     }
 
-    static ICmpInst *negateCmpInst(ICmpInst *cmpInst) {
-        return new ICmpInst(
-                cmpInst->getInversePredicate(),
-                cmpInst->getOperand(0),
-                cmpInst->getOperand(1)
-        );
+    static CmpInstStorePath negateCmpInst(const CmpInstStorePath &cmpInstStorePath) {
+        return {
+                new ICmpInst(
+                        cmpInstStorePath.cmpInst->getInversePredicate(),
+                        cmpInstStorePath.cmpInst->getOperand(0),
+                        cmpInstStorePath.cmpInst->getOperand(1)
+                ),
+                cmpInstStorePath.storePath
+        };
     }
 };
 

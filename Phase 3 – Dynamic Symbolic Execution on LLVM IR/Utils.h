@@ -27,6 +27,15 @@ public:
             : argumentsMap(std::move(argumentsMap)), navigatedPath(std::move(path)) {}
 };
 
+class CmpInstStorePath {
+public:
+    ICmpInst *cmpInst;
+    std::vector<StoreInst *> storePath;
+
+    CmpInstStorePath(ICmpInst *cmpInst, std::vector<StoreInst *> storePath)
+            : cmpInst(cmpInst), storePath(std::move(storePath)) {}
+};
+
 int randomInRange(int startOfRange, int endOfRange) {
     //the random device that will seed the generator
     std::random_device seeder;
