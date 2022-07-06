@@ -1,0 +1,14 @@
+************** Input Argument(s) ***************
+a1 = 41688
+*************** Navigated Path *****************
+entry
+if.then
+return
+************** Input Argument(s) ***************
+a1 = 90
+*************** Navigated Path *****************
+entry
+if.else
+return
+****************** Coverage ********************
+100%
